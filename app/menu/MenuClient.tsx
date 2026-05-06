@@ -20,8 +20,8 @@ import {
     Utensils,
     Search,
     Plus,
-    Sparkles,
     Loader2,
+    AlertCircle,
 } from "lucide-react";
 import { useCart } from "@/lib/store";
 
@@ -34,13 +34,6 @@ const categories = [
     { id: "desi", name: "Desi" },
     { id: "drinks", name: "Drinks" },
     { id: "desserts", name: "Desserts" },
-];
-
-const fallbackItems = [
-    { id: "f1", name: "Chicken Biryani", description: "Aromatic basmati rice with tender chicken", price: 450, rating: 4.9, image_url: "/images/dish-bbq.jpg", category: "desi" },
-    { id: "f2", name: "Seekh Kebab", description: "Juicy minced meat kebabs grilled on charcoal", price: 380, rating: 4.8, image_url: "/images/dish-bbq.jpg", category: "bbq" },
-    { id: "f3", name: "Margherita Pizza", description: "Fresh mozzarella, tomatoes, basil on thin crust", price: 850, rating: 4.8, image_url: "/images/dish-bbq.jpg", category: "pizza" },
-    { id: "f4", name: "Beef Burger", description: "Classic beef patty with premium toppings", price: 650, rating: 4.7, image_url: "/images/dish-bbq.jpg", category: "burgers" },
 ];
 
 function SectionDivider({ variant = "default" }: { variant?: "default" | "ornate" }) {
@@ -65,6 +58,7 @@ export default function MenuClient() {
     const { addItem } = useCart();
     const [menuItems, setMenuItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [activeCategory, setActiveCategory] = useState("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [sortBy, setSortBy] = useState("popular");
@@ -78,17 +72,21 @@ export default function MenuClient() {
 
     useEffect(() => {
         async function fetchMenu() {
+            setLoading(true);
+            setError(null);
             try {
-                const { data, error } = await supabase
+                // Fetching ALL available items from Supabase
+                const { data, error: fetchError } = await supabase
                     .from('menu_items')
                     .select('*')
                     .eq('is_available', true);
 
-                if (error) throw error;
-                setMenuItems(data && data.length > 0 ? data : fallbackItems);
-            } catch (error) {
-                console.error("Error fetching menu:", error);
-                setMenuItems(fallbackItems);
+                if (fetchError) throw fetchError;
+                
+                setMenuItems(data || []);
+            } catch (err: any) {
+                console.error("Error fetching menu:", err);
+                setError(err.message || "Failed to load menu items. Please check your connection.");
             } finally {
                 setLoading(false);
             }
@@ -99,7 +97,7 @@ export default function MenuClient() {
     const filteredItems = useMemo(() => {
         let items = [...menuItems];
         if (activeCategory !== "all") {
-            items = items.filter((item) => item.category?.toLowerCase() === activeCategory);
+            items = items.filter((item) => item.category?.toLowerCase() === activeCategory.toLowerCase());
         }
         if (searchQuery) {
             items = items.filter(
@@ -118,8 +116,22 @@ export default function MenuClient() {
 
     if (loading) {
         return (
-            <div className="flex min-h-[60vh] items-center justify-center">
+            <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Loading Menu...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 px-4 text-center">
+                <AlertCircle className="h-16 w-16 text-destructive/50" />
+                <div>
+                    <h2 className="text-2xl font-black mb-2">Oops! Something went wrong</h2>
+                    <p className="text-muted-foreground max-w-md">{error}</p>
+                </div>
+                <Button onClick={() => window.location.reload()} className="rounded-full px-8">Try Again</Button>
             </div>
         );
     }
@@ -185,7 +197,8 @@ export default function MenuClient() {
                         {filteredItems.length === 0 ? (
                             <div className="py-32 text-center">
                                 <Utensils className="mx-auto h-16 w-16 text-muted-foreground/30 mb-6" />
-                                <p className="text-2xl font-bold text-foreground">No dishes found</p>
+                                <p className="text-2xl font-bold text-foreground">No dishes found in this category</p>
+                                <Button variant="link" onClick={() => {setActiveCategory("all"); setSearchQuery("");}} className="text-primary font-bold">Clear filters</Button>
                             </div>
                         ) : (
                             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -201,7 +214,7 @@ export default function MenuClient() {
                                                     <div className="absolute right-5 top-5">
                                                         <span className="flex items-center gap-1.5 rounded-full bg-background/90 px-3 py-1.5 text-sm font-bold backdrop-blur-md shadow-lg">
                                                             <Star className="h-3.5 w-3.5 fill-primary text-primary" />
-                                                            <span className="text-foreground">{item.rating}</span>
+                                                            <span className="text-foreground">{item.rating || "4.8"}</span>
                                                         </span>
                                                     </div>
                                                 </div>
