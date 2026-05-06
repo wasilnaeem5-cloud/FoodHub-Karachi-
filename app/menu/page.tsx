@@ -1,5 +1,9 @@
 import type { Metadata } from 'next'
 import MenuClient from './MenuClient'
+import { Suspense } from 'react'
+import { Loader2 } from 'lucide-react'
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: 'Menu | FoodHub Karachi - Delicious Pakistani & BBQ Cuisine',
@@ -7,5 +11,13 @@ export const metadata: Metadata = {
 }
 
 export default function MenuPage() {
-  return <MenuClient />
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-[60vh] items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    }>
+      <MenuClient />
+    </Suspense>
+  )
 }

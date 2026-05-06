@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, ShoppingBag, MessageCircle, Home, ArrowRight, Loader2 } from "lucide-react";
 import { Suspense } from "react";
 
+export const dynamic = "force-dynamic";
+
 function SuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("id");
